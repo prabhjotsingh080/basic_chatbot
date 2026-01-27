@@ -1,3 +1,0 @@
-# Hello I am prabhjot...
-## Mei change kr rha hu
-# Making a branch on my own- won't share the fruit.
