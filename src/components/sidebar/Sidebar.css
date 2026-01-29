@@ -1,55 +1,55 @@
-.sidebar{
+.sidebar {
     padding: 20px 10px;
     height: 100vh;
-    overflow: auto;
+    overflow-y: auto; /* Specifically targeting vertical overflow */
     background-color: var(--background-color);
-    color:var(--color);
+    color: var(--color);
     display: flex;
     flex-direction: column;
     gap: 20px;
-    align-items: start;
+    align-items: flex-start; /* Standard flex value */
     font-size: 20px;
-    scrollbar-width: none;
-}
-.sidebar svg{
-width: 30px;
-height: 30px;
-color: var(--color);
-}
-.newchat{
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-  
-    padding: 15px;
-    border-radius: 30px;
-      cursor: pointer;
-    transition: all 0.2s;
-}
-.recent{
-     display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-     padding: 15px;
-    border-radius: 30px;
-    cursor: pointer;
-    transition: all 0.2s;
-  
-}
-#ham{
-    margin-left: 10px;
-}
-.recent:hover{
-    background-color:grey;
+    scrollbar-width: none; /* Hides scrollbar in Firefox */
 }
 
-.newchat:hover{
-    background-color:grey;
+/* Hides scrollbar for Chrome, Safari, and Edge */
+.sidebar::-webkit-scrollbar {
+    display: none;
 }
-@media (max-width:600px) {
-    .sidebar{
-        display: none;
+
+.sidebar svg {
+    width: 30px;
+    height: 30px;
+    flex-shrink: 0; /* Prevents icons from squishing */
+    fill: currentColor; /* Ensures SVG takes the text color */
+}
+
+.newchat, .recent {
+    display: inline-flex; /* Better fit for content-sized buttons */
+    align-items: center;
+    gap: 12px;
+    padding: 12px 18px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, transform 0.1s active;
+    user-select: none; /* Prevents text highlighting on double click */
+}
+
+#ham {
+    margin-left: 10px;
+    cursor: pointer;
+}
+
+.recent:hover, .newchat:hover {
+    background-color: rgba(128, 128, 128, 0.2); /* Softer grey that adapts to light/dark mode */
+}
+
+.recent:active, .newchat:active {
+    transform: scale(0.98); /* Tactile feedback when clicked */
+}
+
+@media (max-width: 600px) {
+    .sidebar {
+        display: none; /* Keeps your existing mobile logic */
     }
 }
