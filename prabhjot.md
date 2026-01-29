@@ -4,4 +4,4 @@ Internship program
 learning git and github and
 python as well
 
-prabhjot is good
+prabhjot is bad
