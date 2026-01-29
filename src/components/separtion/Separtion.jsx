@@ -1,27 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import "./Separtion.css";
+import React, { useState, useEffect, useCallback } from 'react';
+import "./Separtion.css"; // Keep this as is for now so your CSS doesn't break!
 
-function Separtion({ onResize }) {
+function Separation({ onResize }) {
   const [isResizing, setIsResizing] = useState(false);
 
   const startResizing = () => setIsResizing(true);
   const stopResizing = () => setIsResizing(false);
 
-  const resize = (e) => {
+  // Using useCallback ensures the function isn't recreated on every render
+  const resize = useCallback((e) => {
     if (isResizing) {
-      // Pass the new width (mouse X position) back to the parent
       onResize(e.clientX);
     }
-  };
+  }, [isResizing, onResize]);
 
   useEffect(() => {
-    window.addEventListener("mousemove", resize);
-    window.addEventListener("mouseup", stopResizing);
+    if (isResizing) {
+      window.addEventListener("mousemove", resize);
+      window.addEventListener("mouseup", stopResizing);
+    }
+
     return () => {
       window.removeEventListener("mousemove", resize);
       window.removeEventListener("mouseup", stopResizing);
     };
-  }, [isResizing]);
+  }, [isResizing, resize]);
 
   return (
     <div 
@@ -31,4 +34,4 @@ function Separtion({ onResize }) {
   );
 }
 
-export default Separtion;
+export default Separation;
