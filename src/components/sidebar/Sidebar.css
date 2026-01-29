@@ -1,0 +1,55 @@
+.sidebar{
+    padding: 20px 10px;
+    height: 100vh;
+    overflow: auto;
+    background-color: var(--background-color);
+    color:var(--color);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    align-items: start;
+    font-size: 20px;
+    scrollbar-width: none;
+}
+.sidebar svg{
+width: 30px;
+height: 30px;
+color: var(--color);
+}
+.newchat{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+  
+    padding: 15px;
+    border-radius: 30px;
+      cursor: pointer;
+    transition: all 0.2s;
+}
+.recent{
+     display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+     padding: 15px;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.2s;
+  
+}
+#ham{
+    margin-left: 10px;
+}
+.recent:hover{
+    background-color:grey;
+}
+
+.newchat:hover{
+    background-color:grey;
+}
+@media (max-width:600px) {
+    .sidebar{
+        display: none;
+    }
+}
