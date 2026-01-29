@@ -1,0 +1,13 @@
+.separtion {
+    width: 4px;
+    height: 100vh;
+    background-color: var(--btn-background-color); /* Uses your existing variable */
+    cursor: col-resize; /* Shows the resize arrows */
+    transition: background-color 0.3s, width 0.3s;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.separtion:hover, .separtion.resizing {
+    width: 8px;
+    background-color: #4747ac; /* Matches your chat headings gradient color */
+}
