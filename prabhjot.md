@@ -3,8 +3,3 @@
 Internship program
 learning git and github and
 python as well
-
-
-prabhjot is okok
-
-
