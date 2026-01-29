@@ -14,14 +14,14 @@
 
 .lightmode{
   --color:black;
-  --background-color: white;
+  --background-color: lightgrey;
   --btn-background-color:black;
   --btn-color:white;
   --hover-btn-background-color:grey;
 }
 .darkmode{
   --color:white;
-  --background-color:black;
+  --background-color:rgb(13, 0, 0);
    --btn-background-color:white;
      --btn-color:black;
        --hover-btn-background-color:rgb(175, 170, 170);
