@@ -2,13 +2,13 @@ import React, { useState, useEffect } from 'react';
 import "./Separtion.css";
 
 function Separtion({ onResize }) {
-  const [isResizing, setIsResizing] = useState(false);
+  const [isReseizeing, setIsResizing] = useState(false);
 
   const startResizing = () => setIsResizing(true);
   const stopResizing = () => setIsResizing(false);
 
   const resize = (e) => {
-    if (isResizing) {
+    if (isReseizeing) {
       // Pass the new width (mouse X position) back to the parent
       onResize(e.clientX);
     }
@@ -21,11 +21,11 @@ function Separtion({ onResize }) {
       window.removeEventListener("mousemove", resize);
       window.removeEventListener("mouseup", stopResizing);
     };
-  }, [isResizing]);
+  }, [isReseizing]);
 
   return (
     <div 
-      className={`separtion ${isResizing ? "resizing" : ""}`} 
+      className={`separtion ${isReseizing ? "resizing" : ""}`} 
       onMouseDown={startResizing}
     />
   );
