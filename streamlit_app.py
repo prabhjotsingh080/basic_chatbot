@@ -3,13 +3,12 @@ import os
 import google.generativeai as genai
 from dotenv import load_dotenv
 from supabase import create_client
-from datetime import datetime
 
 # Load environment variables
 load_dotenv()
 
 # Page config
-st.set_page_config(page_title="Chat Assistant", layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(page_title="Chat Assistant", layout="wide", initial_sidebar_state="expanded")
 
 # Initialize Gemini
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
@@ -18,20 +17,21 @@ if not GEMINI_API_KEY:
     st.stop()
 
 genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+model = genai.GenerativeModel('gemini-2.5-flash')
 
 # Initialize Supabase
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-if SUPABASE_URL and SUPABASE_KEY:
-    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-    USE_SUPABASE = True
-else:
-    USE_SUPABASE = False
-    st.warning("⚠️ Supabase not configured. Running in memory-only mode.")
+if not SUPABASE_URL or not SUPABASE_KEY:
+    st.error("Please set SUPABASE_URL and SUPABASE_KEY in .env file")
+    st.stop()
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # Initialize session state
+if 'user' not in st.session_state:
+    st.session_state.user = None
 if 'messages' not in st.session_state:
     st.session_state.messages = []
 if 'dark_mode' not in st.session_state:
@@ -40,19 +40,56 @@ if 'chat_session' not in st.session_state:
     st.session_state.chat_session = model.start_chat(history=[])
 if 'current_session_id' not in st.session_state:
     st.session_state.current_session_id = None
-if 'chat_sessions' not in st.session_state:
-    st.session_state.chat_sessions = []
+
+# Authentication Functions
+def sign_up(email, password):
+    """Sign up a new user"""
+    try:
+        response = supabase.auth.sign_up({
+            "email": email,
+            "password": password
+        })
+        if response.user:
+            st.session_state.user = response.user
+            return True, "Account created successfully!"
+        return False, "Sign up failed"
+    except Exception as e:
+        return False, str(e)
+
+def sign_in(email, password):
+    """Sign in existing user"""
+    try:
+        response = supabase.auth.sign_in_with_password({
+            "email": email,
+            "password": password
+        })
+        if response.user:
+            st.session_state.user = response.user
+            return True, "Logged in successfully!"
+        return False, "Login failed"
+    except Exception as e:
+        return False, str(e)
+
+def sign_out():
+    """Sign out current user"""
+    try:
+        supabase.auth.sign_out()
+        st.session_state.user = None
+        st.session_state.messages = []
+        st.session_state.current_session_id = None
+        st.session_state.chat_session = model.start_chat(history=[])
+        return True
+    except Exception as e:
+        st.error(f"Logout error: {str(e)}")
+        return False
 
 # Supabase Functions
-def create_new_session():
-    """Create a new chat session in Supabase"""
-    if not USE_SUPABASE:
-        return None
-    
+def create_new_session(user_id):
+    """Create a new chat session"""
     try:
         response = supabase.table('chat_sessions').insert({
             'title': 'New Chat',
-            'user_id': None  # For now, no authentication
+            'user_id': user_id
         }).execute()
         
         if response.data:
@@ -63,9 +100,6 @@ def create_new_session():
 
 def save_message(session_id, role, content):
     """Save a message to Supabase"""
-    if not USE_SUPABASE or not session_id:
-        return
-    
     try:
         supabase.table('messages').insert({
             'session_id': session_id,
@@ -77,9 +111,6 @@ def save_message(session_id, role, content):
 
 def load_messages(session_id):
     """Load messages from a specific session"""
-    if not USE_SUPABASE or not session_id:
-        return []
-    
     try:
         response = supabase.table('messages')\
             .select('*')\
@@ -93,14 +124,12 @@ def load_messages(session_id):
         st.error(f"Error loading messages: {str(e)}")
     return []
 
-def load_all_sessions():
-    """Load all chat sessions"""
-    if not USE_SUPABASE:
-        return []
-    
+def load_user_sessions(user_id):
+    """Load all chat sessions for current user"""
     try:
         response = supabase.table('chat_sessions')\
             .select('*')\
+            .eq('user_id', user_id)\
             .order('updated_at', desc=True)\
             .limit(20)\
             .execute()
@@ -113,9 +142,6 @@ def load_all_sessions():
 
 def update_session_title(session_id, title):
     """Update session title based on first message"""
-    if not USE_SUPABASE or not session_id:
-        return
-    
     try:
         supabase.table('chat_sessions')\
             .update({'title': title[:50]})\
@@ -126,9 +152,6 @@ def update_session_title(session_id, title):
 
 def delete_session(session_id):
     """Delete a chat session"""
-    if not USE_SUPABASE or not session_id:
-        return
-    
     try:
         supabase.table('chat_sessions').delete().eq('id', session_id).execute()
     except Exception as e:
@@ -226,22 +249,80 @@ st.markdown(f"""
     [data-testid="stSidebar"] {{
         background-color: {colors['sidebar_bg']};
     }}
-    .session-item {{
-        padding: 0.75rem;
-        margin: 0.5rem 0;
-        border-radius: 8px;
-        cursor: pointer;
-        background-color: {colors['input_bg']};
+    .auth-container {{
+        max-width: 400px;
+        margin: 5rem auto;
+        padding: 2rem;
+        background-color: {colors['secondary_bg']};
+        border-radius: 12px;
         color: {colors['text']};
-    }}
-    .session-item:hover {{
-        opacity: 0.8;
     }}
 </style>
 """, unsafe_allow_html=True)
 
-# Sidebar - Chat History
+# ============ AUTHENTICATION UI ============
+if not st.session_state.user:
+    st.markdown(f"""
+    <div class="auth-container">
+        <h1 style="text-align: center; color: {colors['accent']};">Welcome to Chat Assistant</h1>
+        <p style="text-align: center; opacity: 0.7;">Please login or create an account</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    tab1, tab2 = st.tabs(["Login", "Sign Up"])
+    
+    with tab1:
+        with st.form("login_form"):
+            email = st.text_input("Email")
+            password = st.text_input("Password", type="password")
+            submit = st.form_submit_button("Login", use_container_width=True)
+            
+            if submit:
+                if email and password:
+                    success, message = sign_in(email, password)
+                    if success:
+                        st.success(message)
+                        st.rerun()
+                    else:
+                        st.error(message)
+                else:
+                    st.warning("Please enter both email and password")
+    
+    with tab2:
+        with st.form("signup_form"):
+            new_email = st.text_input("Email", key="signup_email")
+            new_password = st.text_input("Password", type="password", key="signup_password")
+            confirm_password = st.text_input("Confirm Password", type="password")
+            submit_signup = st.form_submit_button("Sign Up", use_container_width=True)
+            
+            if submit_signup:
+                if new_email and new_password and confirm_password:
+                    if new_password == confirm_password:
+                        success, message = sign_up(new_email, new_password)
+                        if success:
+                            st.success(message)
+                            st.rerun()
+                        else:
+                            st.error(message)
+                    else:
+                        st.error("Passwords don't match")
+                else:
+                    st.warning("Please fill all fields")
+    
+    st.stop()  # Don't show chat if not logged in
+
+# ============ MAIN CHAT UI (After Login) ============
+
+# Sidebar
 with st.sidebar:
+    st.markdown(f"### 👤 {st.session_state.user.email}")
+    
+    if st.button("🚪 Logout", use_container_width=True):
+        if sign_out():
+            st.rerun()
+    
+    st.markdown("---")
+    
     st.markdown("### 💬 Chat History")
     
     if st.button("➕ New Chat", use_container_width=True):
@@ -252,32 +333,31 @@ with st.sidebar:
     
     st.markdown("---")
     
-    if USE_SUPABASE:
-        # Load sessions
-        sessions = load_all_sessions()
-        
-        for session in sessions:
-            col1, col2 = st.columns([4, 1])
-            with col1:
-                if st.button(
-                    session['title'][:30], 
-                    key=f"session_{session['id']}",
-                    use_container_width=True
-                ):
-                    # Load this session
-                    st.session_state.current_session_id = session['id']
-                    st.session_state.messages = load_messages(session['id'])
-                    st.session_state.chat_session = model.start_chat(history=[])
-                    st.rerun()
-            with col2:
-                if st.button("🗑️", key=f"delete_{session['id']}"):
-                    delete_session(session['id'])
-                    if st.session_state.current_session_id == session['id']:
-                        st.session_state.messages = []
-                        st.session_state.current_session_id = None
-                    st.rerun()
+    # Load user's sessions
+    sessions = load_user_sessions(st.session_state.user.id)
+    
+    for session in sessions:
+        col1, col2 = st.columns([4, 1])
+        with col1:
+            if st.button(
+                session['title'][:30], 
+                key=f"session_{session['id']}",
+                use_container_width=True
+            ):
+                # Load this session
+                st.session_state.current_session_id = session['id']
+                st.session_state.messages = load_messages(session['id'])
+                st.session_state.chat_session = model.start_chat(history=[])
+                st.rerun()
+        with col2:
+            if st.button("🗑️", key=f"delete_{session['id']}"):
+                delete_session(session['id'])
+                if st.session_state.current_session_id == session['id']:
+                    st.session_state.messages = []
+                    st.session_state.current_session_id = None
+                st.rerun()
 
-# Header with buttons
+# Header with theme toggle
 col1, col2 = st.columns([6, 1])
 with col2:
     if st.button("🌙" if not st.session_state.dark_mode else "☀️", key="theme_toggle"):
@@ -311,14 +391,14 @@ def handle_submit():
         user_msg = st.session_state.temp_input
         
         # Create new session if needed
-        if USE_SUPABASE and not st.session_state.current_session_id:
-            st.session_state.current_session_id = create_new_session()
+        if not st.session_state.current_session_id:
+            st.session_state.current_session_id = create_new_session(st.session_state.user.id)
         
         # Add user message
         st.session_state.messages.append({"role": "user", "content": user_msg})
         
         # Save to Supabase
-        if USE_SUPABASE and st.session_state.current_session_id:
+        if st.session_state.current_session_id:
             save_message(st.session_state.current_session_id, "user", user_msg)
             
             # Update session title with first message
@@ -332,7 +412,7 @@ def handle_submit():
             st.session_state.messages.append({"role": "assistant", "content": ai_response})
             
             # Save AI response to Supabase
-            if USE_SUPABASE and st.session_state.current_session_id:
+            if st.session_state.current_session_id:
                 save_message(st.session_state.current_session_id, "assistant", ai_response)
                 
         except Exception as e:

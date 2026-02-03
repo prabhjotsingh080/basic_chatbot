@@ -1,6 +1,4 @@
 streamlit
 google-generativeai
 dotenv
-httpx
-postgrest
 supabase
